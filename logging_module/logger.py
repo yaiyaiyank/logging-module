@@ -1,41 +1,51 @@
 import datetime
 import inspect
-import tomllib
-from logging import DEBUG, INFO, FileHandler, Formatter, StreamHandler, getLogger
+from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL, FileHandler, Formatter, StreamHandler, getLogger
 from pathlib import Path
+from typing import Literal
 
-# 自作ライブラリ
-from .setting import project_folder_path
+level_dict = {"debug": DEBUG, "info": INFO, "warning": WARNING, "error": ERROR, "critical": CRITICAL}
 
 
 class Log:
-    def __init__(self, module_name: str | None = None, log_folder_path: Path | str | None = None):
+    def __init__(
+        self,
+        log_folder_path: Path | str | None = None,
+        file_level: Literal["debug", "info", "warning", "error", "critical"] = "info",
+        stream_level: Literal["debug", "info", "warning", "error", "critical"] = "debug",
+    ):
         """ログ"""
-        # ログを識別する名前
+        if not isinstance(log_folder_path, Path | str | None):
+            raise TypeError(f"log_folder_pathは型: {log_folder_path}に対応していません。")
+        self._set_handlers(log_folder_path, file_level, stream_level)
+
+    def debug(self, text: str, module_name: str | None = None):
         if module_name is None:
             module_name = self._get_caller_name()
+        self.logger.debug(f"{module_name} - {text}")
 
-        log_folder_path = self._get_log_folder_path(log_folder_path)
+    def info(self, text: str, module_name: str | None = None):
+        if module_name is None:
+            module_name = self._get_caller_name()
+        self.logger.info(f"{module_name} - {text}")
 
-        self._set_handlers(module_name, log_folder_path)
+    def warning(self, text: str, module_name: str | None = None):
+        if module_name is None:
+            module_name = self._get_caller_name()
+        self.logger.warning(f"{module_name} - {text}")
 
-    def debug(self, text):
-        self.logger.debug(text)
+    def error(self, text: str, module_name: str | None = None):
+        if module_name is None:
+            module_name = self._get_caller_name()
+        self.logger.error(f"{module_name} - {text}")
 
-    def info(self, text):
-        self.logger.info(text)
+    def critical(self, text: str, module_name: str | None = None):
+        if module_name is None:
+            module_name = self._get_caller_name()
+        self.logger.critical(f"{module_name} - {text}")
 
-    def warning(self, text):
-        self.logger.warning(text)
-
-    def error(self, text):
-        self.logger.error(text)
-
-    def critical(self, text):
-        self.logger.critical(text)
-
-    def _set_handlers(self, module_name: str, log_folder_path: Path):
-        self.logger = getLogger(module_name)
+    def _set_handlers(self, log_folder_path: Path | str | None, file_level: str, stream_level: str):
+        self.logger = getLogger()
 
         # 重複防止
         if self.logger.hasHandlers():
@@ -43,10 +53,11 @@ class Log:
         # debug以上のログを記録
         self.logger.setLevel(DEBUG)
         # はんどらせってい
-        self._set_file_handler(log_folder_path)
-        self._set_stream_handler()
+        if not log_folder_path is None:
+            self._set_file_handler(log_folder_path, file_level)
+        self._set_stream_handler(stream_level)
 
-    def _set_file_handler(self, log_folder_path: Path):
+    def _set_file_handler(self, log_folder_path: Path | str | None, file_level: str):
         # 日付を
         date = datetime.date.today()
         log_file = log_folder_path / f"{date.year:04}" / f"{date.month:02}" / f"{date.day:02}.log"
@@ -55,31 +66,15 @@ class Log:
 
         # FileHandler
         handler = FileHandler(log_file, encoding="utf-8")
-        handler.setLevel(INFO)
-        handler.setFormatter(Formatter("%(asctime)s [%(levelname)s] - %(name)s - %(message)s"))
+        handler.setLevel(level_dict[file_level])
+        handler.setFormatter(Formatter("%(asctime)s [%(levelname)s] - %(message)s"))
         self.logger.addHandler(handler)
 
-    def _set_stream_handler(self) -> str:
+    def _set_stream_handler(self, stream_level: str) -> str:
         handler = StreamHandler()
-        handler.setLevel(DEBUG)
-        handler.setFormatter(Formatter("[%(levelname)s] - %(name)s - %(message)s"))
+        handler.setLevel(level_dict[stream_level])
+        handler.setFormatter(Formatter("[%(levelname)s] - %(message)s"))
         self.logger.addHandler(handler)
-
-    @staticmethod
-    def _get_log_folder_path(log_folder_path: Path | str | None) -> Path:
-        """ログのフォルダーを決定"""
-        # 引数で指定されていたらそれ
-        if not log_folder_path is None:
-            return Path(log_folder_path)
-        # tomlから引用
-        with (project_folder_path / "config.toml").open("rb") as f:
-            toml = tomllib.load(f)
-        log_folder_path_str = toml["path"]["default_log_folder"]
-        # tomlにも設定されていなかったら
-        if log_folder_path_str == "":
-            return project_folder_path / "log"
-        # tomlに設定されていたらそれを使う
-        return Path(log_folder_path_str)
 
     @staticmethod
     def _get_caller_name() -> str:
