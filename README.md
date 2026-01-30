@@ -20,10 +20,16 @@ pip install git+https://github.com/yaiyaiyank/logging-module
 
 # usage
 
+プロジェクト直下のsetting/\_\_init\_\_.pyにて
 ```python
 from logging_module import Log
 
 log = Log()
+
+```
+
+```python
+from setting import log
 
 log.info("うおｗ")
 

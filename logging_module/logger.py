@@ -16,7 +16,7 @@ class Log:
     ):
         """ログ"""
         if not isinstance(log_folder_path, Path | str | None):
-            raise TypeError(f"log_folder_pathは型: {log_folder_path}に対応していません。")
+            raise TypeError(f"log_folder_pathは型: {type(log_folder_path)}に対応していません。")
         self._set_handlers(log_folder_path, file_level, stream_level)
 
     def debug(self, text: str, module_name: str | None = None):
@@ -54,10 +54,11 @@ class Log:
         self.logger.setLevel(DEBUG)
         # はんどらせってい
         if not log_folder_path is None:
+            log_folder_path = Path(log_folder_path)
             self._set_file_handler(log_folder_path, file_level)
         self._set_stream_handler(stream_level)
 
-    def _set_file_handler(self, log_folder_path: Path | str | None, file_level: str):
+    def _set_file_handler(self, log_folder_path: Path, file_level: str):
         # 日付を
         date = datetime.date.today()
         log_file = log_folder_path / f"{date.year:04}" / f"{date.month:02}" / f"{date.day:02}.log"
@@ -83,7 +84,7 @@ class Log:
         stack = inspect.stack()
 
         # 呼び出し元の情報を取得
-        frame = stack[2]  # [0]はget_caller_name, [1]は__init__, [2]はその呼び出し元
+        frame = stack[2]  # [0]はこの_get_caller_nameメソッド, [1]はこのクラスの__init__メソッド, [2]はその呼び出し元
         caller_frame = frame.frame
         code_object = caller_frame.f_code
 
