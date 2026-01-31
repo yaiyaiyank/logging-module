@@ -1,8 +1,10 @@
+from pathlib import Path
 import datetime
 import inspect
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL, FileHandler, Formatter, StreamHandler, getLogger
-from pathlib import Path
 from typing import Literal
+
+from logging_module import Searcher
 
 level_dict = {"debug": DEBUG, "info": INFO, "warning": WARNING, "error": ERROR, "critical": CRITICAL}
 
@@ -15,9 +17,11 @@ class Log:
         stream_level: Literal["debug", "info", "warning", "error", "critical"] = "debug",
     ):
         """ログ"""
-        if not isinstance(log_folder_path, Path | str | None):
-            raise TypeError(f"log_folder_pathは型: {type(log_folder_path)}に対応していません。")
-        self._set_handlers(log_folder_path, file_level, stream_level)
+        self.log_folder_path = log_folder_path
+
+        if not isinstance(self.log_folder_path, Path | str | None):
+            raise TypeError(f"log_folder_pathは型: {type(self.log_folder_path)}に対応していません。")
+        self._set_handlers(file_level, stream_level)
 
     def debug(self, text: str, module_name: str | None = None):
         if module_name is None:
@@ -44,7 +48,7 @@ class Log:
             module_name = self._get_caller_name()
         self.logger.critical(f"{module_name} - {text}")
 
-    def _set_handlers(self, log_folder_path: Path | str | None, file_level: str, stream_level: str):
+    def _set_handlers(self, file_level: str, stream_level: str):
         self.logger = getLogger()
 
         # 重複防止
@@ -53,9 +57,9 @@ class Log:
         # debug以上のログを記録
         self.logger.setLevel(DEBUG)
         # はんどらせってい
-        if not log_folder_path is None:
-            log_folder_path = Path(log_folder_path)
-            self._set_file_handler(log_folder_path, file_level)
+        if not self.log_folder_path is None:
+            self.log_folder_path = Path(self.log_folder_path)
+            self._set_file_handler(self.log_folder_path, file_level)
         self._set_stream_handler(stream_level)
 
     def _set_file_handler(self, log_folder_path: Path, file_level: str):
@@ -100,6 +104,34 @@ class Log:
             return f"File: {Path(code_object.co_filename).name}"
         else:
             return f"Function: {code_object.co_name}"
+
+    def search_text_date(
+        self, search_text: str, start_date: datetime.date | None = None, end_date: datetime.date | None = None
+    ) -> list[datetime.date]:
+        """
+        Args:
+            search_text (str): 検索する文字列。この文字列に部分一致するログのある日付を取得
+            start_date (datetime.date): 開始日(自身を含む)。datetime.date(2025, 9, 14)なら2025-09-14以上の日付で検索。
+            end_date (datetime.date): 終了日(自身を含まない)。datetime.date(2025, 11, 12)なら2029-11-12未満の日付で検索。
+        """
+        searcher = Searcher(self.log_folder_path)
+        day_file_list = searcher.get_day_file_list(start_date, end_date)
+        date_list = searcher.get_date_list(search_text, day_file_list)
+        return date_list
+
+    def search_text_row(
+        self, search_text: str, start_date: datetime.date | None = None, end_date: datetime.date | None = None
+    ) -> list[datetime.date]:
+        """
+        Args:
+            search_text (str): 検索する文字列。この文字列に部分一致するログの行を取得
+            start_date (datetime.date): 開始日(自身を含む)。datetime.date(2025, 9, 14)なら2025-09-14以上の日付で検索。
+            end_date (datetime.date): 終了日(自身を含まない)。datetime.date(2025, 11, 12)なら2029-11-12未満の日付で検索。
+        """
+        searcher = Searcher(self.log_folder_path)
+        day_file_list = searcher.get_day_file_list(start_date, end_date)
+        text_row_list = searcher.get_text_row_list(search_text, day_file_list)
+        return text_row_list
 
 
 if __name__ == "__main__":
