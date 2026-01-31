@@ -10,3 +10,9 @@ wheels/
 .venv
 .vscode
 /config.toml
+
+# test
+test.py
+
+# log
+/logs
