@@ -14,7 +14,7 @@ class Log:
         self,
         log_folder_path: Path | str | None = None,
         file_level: Literal["debug", "info", "warning", "error", "critical"] = "info",
-        stream_level: Literal["debug", "info", "warning", "error", "critical"] = "debug",
+        stream_level: Literal["debug", "info", "warning", "error", "critical"] = "info",
     ):
         """ログ"""
         self.log_folder_path = log_folder_path
@@ -49,7 +49,7 @@ class Log:
         self.logger.critical(f"{module_name} - {text}")
 
     def _set_handlers(self, file_level: str, stream_level: str):
-        self.logger = getLogger()
+        self.logger = getLogger("logging_module")
 
         # 重複防止
         if self.logger.hasHandlers():
