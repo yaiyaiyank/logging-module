@@ -3,6 +3,7 @@ import datetime
 import inspect
 from logging import DEBUG, INFO, WARNING, ERROR, CRITICAL, FileHandler, Formatter, StreamHandler, getLogger
 from typing import Literal
+import traceback
 
 from logging_module import Searcher
 
@@ -13,7 +14,7 @@ class Log:
     def __init__(
         self,
         log_folder_path: Path | str | None = None,
-        file_level: Literal["debug", "info", "warning", "error", "critical"] = "info",
+        file_level: Literal["debug", "info", "warning", "error", "critical"] = "debug",
         stream_level: Literal["debug", "info", "warning", "error", "critical"] = "info",
     ):
         """ログ"""
@@ -47,6 +48,18 @@ class Log:
         if module_name is None:
             module_name = self._get_caller_name()
         self.logger.critical(f"{module_name} - {text}")
+
+    def exception(self, text: str | None = None, module_name: str | None = None):
+        """tracebackのテキストある版"""
+        if module_name is None:
+            module_name = self._get_caller_name()
+        self.logger.exception(f"{module_name} - {text}")
+
+    def traceback(self, module_name: str | None = None):
+        """tracebackのテキストない版"""
+        if module_name is None:
+            module_name = self._get_caller_name()
+        self.logger.error(f"{module_name} - {traceback.format_exc()}")
 
     def _set_handlers(self, file_level: str, stream_level: str):
         self.logger = getLogger("logging_module")
